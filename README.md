@@ -1,5 +1,7 @@
 # nona
 
+3D nonogram puzzle generator (WIP)
+
 ## Project setup
 ```
 npm install
