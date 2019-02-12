@@ -1,6 +1,6 @@
 # nona
 
-3D nonogram puzzle generator (WIP)
+3D nonogram puzzle generator (WIP).
 
 ## Project setup
 ```
