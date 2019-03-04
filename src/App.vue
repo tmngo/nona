@@ -54,23 +54,23 @@
     <div class="controls">
       <svg @click="swapControls" viewBox="-48 -48 96 96">
 
-          <rect x="-16" y="-48" width="64" height="64" stroke="black" stroke-width="2" fill="white"/>
-          <line x1="-16" y1="16" x2="48" y2="-48"/>
-          <line x1="-16" y1="-48" x2="48" y2="16"/>
-          <transition name="fade">
-            <rect v-show="controls.paint === 2" x="-15" y="-47" width="62" height="62" stroke="white" stroke-width="2" fill="hsl(180, 50%, 50%)"/>
-          </transition>
-          <rect x="-16" y="-48" width="64" height="64" stroke="black" stroke-width="1" fill="none"/>
+        <rect x="-16" y="-48" width="64" height="64" stroke="black" stroke-width="2" fill="white"/>
+        <line x1="-16" y1="16" x2="48" y2="-48"/>
+        <line x1="-16" y1="-48" x2="48" y2="16"/>
+        <transition name="fade">
+          <rect v-show="controls.paint === 2" x="-15" y="-47" width="62" height="62" stroke="white" stroke-width="2" fill="hsl(180, 50%, 50%)"/>
+        </transition>
+        <rect x="-16" y="-48" width="64" height="64" stroke="black" stroke-width="1" fill="none"/>
 
-          <rect x="-48" y="-16" width="64" height="64" stroke="black" stroke-width="2" fill="white"/>
-          <line x1="-48" y1="48" x2="16" y2="-16"/>
-          <line x1="-48" y1="-16" x2="16" y2="48"/>
-          <transition name="fade">
-            <rect v-show="controls.paint === 0" x="-47" y="-15" width="62" height="62" stroke="white" stroke-width="2" fill="hsl(180, 50%, 50%)"/>
-          </transition>
-          <rect x="-48" y="-16" width="64" height="64" stroke="black" stroke-width="1" fill="none"/>
-          <text x="50" y="15" fill="white">R</text>
-          <text x="18" y="47" fill="white">L</text>
+        <rect x="-48" y="-16" width="64" height="64" stroke="black" stroke-width="2" fill="white"/>
+        <line x1="-48" y1="48" x2="16" y2="-16"/>
+        <line x1="-48" y1="-16" x2="16" y2="48"/>
+        <transition name="fade">
+          <rect v-show="controls.paint === 0" x="-47" y="-15" width="62" height="62" stroke="white" stroke-width="2" fill="hsl(180, 50%, 50%)"/>
+        </transition>
+        <rect x="-48" y="-16" width="64" height="64" stroke="black" stroke-width="1" fill="none"/>
+        <text x="50" y="15" fill="white">R</text>
+        <text x="18" y="47" fill="white">L</text>
 
       </svg>
     </div>
@@ -98,6 +98,8 @@
         
         <button @click="solveN(1)">Solve Iteration</button>
         <button @click="solve">Solve Complete</button>
+
+        <p><a href="https://github.com/ngotm/nona">Help</a></p>
 
       </div>
     </div>
@@ -1156,6 +1158,7 @@ body {
   margin: 0.5em;
   background: #000a;
   border-radius: 4px;
+  
 }
 
 .menu > button{
@@ -1174,11 +1177,18 @@ body {
   color: white;
   margin: 0.5em 0em;
   p {
+    a {
+      font: {
+        family: FiraSans, Times, sans-serif !important;
+        size: 1em;
+      }
+      text-decoration: underline;
+		  color: #ffffff;
+	  }
     margin: 0.2em;
   }
   button {
     margin: 0.5em;
-    
   }
 }
 
@@ -1223,7 +1233,7 @@ a {
   grid-area: footer;
   &:hover {
     color: white;
-  text-decoration: underline;
+    text-decoration: underline;
   }
 }
 
