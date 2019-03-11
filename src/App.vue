@@ -43,11 +43,10 @@
       id="loading" 
       viewBox="-38 -38 76 76"
       width="800"
-      height="800"
-      style="position: absolute; overflow: hidden">
+      height="800">
       <polygon 
         points="0,-30 25.98,-15 25.98,15 0,30 -25.98,15 -25.98,-15 0,-30  2.598,-28.5"
-        :stroke-dashoffset="190*(1-2*progress)" 
+        :stroke-dasharray="`${90*progress} ${90*(1-progress)}`"
       />
     </svg>
 
@@ -76,10 +75,9 @@
     </div>
 
     <div class="menu">
-      <button class="btn-menu" @click="showMenu = !showMenu">Menu</button>
+      <button class="menu-btn" @click="showMenu = !showMenu">Menu</button>
 
-      <div v-show="showMenu" class="info">
-
+      <div v-show="showMenu" class="submenu">
         <input type="range" min="2" max="7" v-model.number="newN"/>
         <p>N = {{ newN }}</p>
 
@@ -89,19 +87,25 @@
         <input type="range" min="0" max="1" step="0.1" v-model.number="newRemoval"/>
         <p>clue removal = {{ newRemoval }}</p>
 
-        <!-- <button @click="generateRandomPuzzle(newN, newDensity)">New Puzzle</button> -->
-        <button @mousedown="loading = true;" @click="generatePuzzle(newN, newDensity)">Generate Puzzle</button>  
+        <button @mousedown="loading = true" @click="generatePuzzle(newN, newDensity)">Generate Puzzle</button>  
         <button @click="resetPuzzle">Reset Puzzle</button>
 
+      </div>
+
+      <div v-show="showMenu" class="submenu">
         <p>remaining = {{ this.n**3 - numSolid - numBroken }}</p>
         <p>strikes = {{ strikes }}</p>
-        
+      </div>
+
+      <div v-show="showMenu" class="submenu">
         <button @click="solveN(1)">Solve Iteration</button>
         <button @click="solve">Solve Complete</button>
-
-        <p><a href="https://github.com/ngotm/nona">Help</a></p>
-
       </div>
+
+      <div v-show="showMenu" class="submenu">
+        <a class="link" href="https://github.com/ngotm/nona">Help</a>
+      </div>
+
     </div>
 
   </div>
@@ -1011,6 +1015,18 @@ export default {
 <style lang="scss">
 @import "./assets/fonts.scss";
 
+$font-stack: FiraSans, "Helvetica Neue", "Helvetica", Arial, sans-serif;
+
+@mixin transform($property) {
+  transform: $property;
+  -ms-transform: $property;
+  -webkit-transform: $property;
+}
+
+@mixin box-shadow($property) {
+  box-shadow: $property;
+}
+
 body {
   font: {
     family: FiraSans, Times, sans-serif !important;
@@ -1032,38 +1048,156 @@ body {
   grid-area: header;
   justify-self: start;
   align-self: start;
-  margin: 0.5em 0.5em;
+  margin: 0.5em;
 	a {
+    font-size: 0.75em;
+    color: #bbb;
+    text-decoration: none;
+    height: 2em;
+    line-height: 2em;
+    &:hover {
+      color: white;
+      text-decoration: underline;
+    }
+    margin: 0.75em;
 		color: #ffffff;
 		font-weight: bold;
 	}
 }
 
 #app {
+  align-items: center;
   background-color: hsl(0, 0, 25%);
-  position: relative;
   display: grid;
   grid-gap: 0;
-  margin: 0;
   grid-template: 
     "header header header header header" minmax(3em, auto)
     ". main main main ." 1fr
     ". left middle right ." auto
     ". footer footer footer ." minmax(2em, auto)
     / 1fr minmax(0em, 30em) 10vh minmax(0em, 30em) 1fr; 
-  align-items: center;
+  height: 100%;
   justify-items: center;
   justify-content: center;
-  height: 100%;
+  margin: 0;
+  position: relative;
   width: 100%;
 }
 
+
+#canvas {
+  position: relative;
+  grid-area: main;
+  max-width: 135%;
+  max-height: 110%;
+}
+
+#loading {
+  @extend #canvas;
+  polygon {
+    stroke: #111; 
+    fill: hsla(45, 20%, 80%, 0.7); 
+    stroke-width: 2; 
+  }
+}
+
+@mixin button() {
+  font: {
+    family: $font-stack;
+    weight: 600;
+    size: 1em;
+  }
+  text: {
+    align: center;
+    decoration: none;
+  }
+  white-space: nowrap;
+  height: 2em;
+  padding: 0 14px;
+  box-shadow: 0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08);
+  background: #fff;
+  border-radius: 3px;
+  line-height: 2em;
+  text-transform: uppercase;
+  color: #404040;
+  border: none;
+  -webkit-transition: all .15s ease;
+  transition: all .15 s ease;
+  &:focus, &:hover {
+    background: hsl(180, 50%, 80%);
+    color: #000;
+    @include transform(translateY(-1px));
+    box-shadow: 0 13px 27px -5px rgba(50,50,93,.25),0 8px 16px -8px rgba(0,0,0,.3);
+    box-shadow: 0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
+  }
+  &:active {
+    background: #fff;
+    transform: translateY(1px);
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.menu {
+  align-items: center;
+  align-self: start;
+  background: #000d;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  grid-area: header;
+  justify-self: end;
+  padding: 0.5em 0.25em;
+  margin: 0.5em;
+  position: absolute;
+  
+}
+
+.link {
+  @include button;
+}
+
+.menu-btn {
+  @include button;
+  font-size: 0.75em;
+  align-self: flex-end;
+  background: #0000 !important;
+  color: white !important;
+  padding: 0 .5em;
+  margin: 0;
+  line-height: 1.5em;
+  height: 1.5em;
+}
+
+.submenu {
+  z-index: 10;
+  font-size: 0.75em;
+  border: solid #333 1px;
+  border-bottom: none;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; 
+  justify-content: space-around;
+  color: white;
+  padding: 0.25em 0.25em;
+  button {
+    @include button;
+    margin: 0.2em;
+  }
+  a, p {
+    margin: 0.2em;
+  }
+  &:last-child {
+    border-bottom: solid #444 1px;
+  }
+}
+
 .controls {
+  align-items: flex-start;
+  display: flex; 
   grid-area: middle;
   height: 100%;
-  display: flex; 
   justify-content: center; 
-  align-items: flex-start;
   transition: all .15s ease;
   svg {
     overflow: visible;
@@ -1145,113 +1279,5 @@ body {
   }
 }
 
-.menu {
-  position: absolute;
-  float: right;
-  padding: 0.5em 0.1em;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  grid-area: header;
-  align-self: start;
-  justify-self: end;
-  margin: 0.5em;
-  background: #000a;
-  border-radius: 4px;
-  
-}
-
-.menu > button{
-  background: #0000 !important;
-  color: white !important;
-}
-
-.info {
-  z-index: 10;
-  padding: 1em;
-  width: 12em;
-  display: flex;
-  flex-direction: column;
-  align-items: center; 
-  justify-content: space-around;
-  color: white;
-  margin: 0.5em 0em;
-  p {
-    a {
-      font: {
-        family: FiraSans, Times, sans-serif !important;
-        size: 1em;
-      }
-      text-decoration: underline;
-		  color: #ffffff;
-	  }
-    margin: 0.2em;
-  }
-  button {
-    margin: 0.5em;
-  }
-}
-
-button {
-  font-family: inherit;
-  height: 2em;
-  padding: 0 14px;
-  -webkit-box-shadow: 0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08);
-  box-shadow: 0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08);
-  background: #fff;
-  border-radius: 3px;
-  font-size: 0.75em;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #404040;
-
-  border: none;
-  -webkit-transition: all .15s ease;
-  transition: all .15 s ease;
-  &:focus, &:hover {
-    background: hsl(180, 50%, 80%);
-    color: #000000;
-    -webkit-transform: translateY(-1px);
-    transform: translateY(-1px);
-    -webkit-box-shadow: 0 13px 27px -5px rgba(50,50,93,.25),0 8px 16px -8px rgba(0,0,0,.3);
-    box-shadow: 0 13px 27px -5px rgba(50,50,93,.25),0 8px 16px -8px rgba(0,0,0,.3);
-    -webkit-box-shadow: 0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
-    box-shadow: 0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
-  }
-  &:active {
-    background: #fff;
-    transform: translateY(1px);
-    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-}
-
-a { 
-  font-size: 0.75em;
-  margin: 0.75em;
-  color: #bbb;
-  text-decoration: none;
-  grid-area: footer;
-  &:hover {
-    color: white;
-    text-decoration: underline;
-  }
-}
-
-#canvas, #loading {
-  margin: 0;
-  grid-area: main;
-  max-width: 135%;
-  max-height: 110%;
-}
-
-#loading {
-  polygon {
-    stroke: #111; 
-    fill: hsla(45, 20%, 80%, 0.7); 
-    stroke-width: 2; 
-    stroke-dasharray: 190;
-
-  }
-}
 
 </style>
