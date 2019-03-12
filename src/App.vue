@@ -3,21 +3,33 @@
 
     <div id="home"><a href="https://ngotm.github.io">ngotm.github.io</a></div>
 
-    <NonaCanvas 
-      v-show="!loading"
-      :n="n" 
-      :cubes="cubeArr" 
-      :cube-visibility="cubeVisibility"
-      :cube-highlight="cubeHighlight"
-      :clue-grids="clueGrids"
-      :section-x="sectionX"
-      :section-y="sectionY"
-      :controls="controls"
-      @painton="enablePaint"
-      @paint="paintCube"
-      @breakon="enableBreak"
-      @break="breakCube"
-    ></NonaCanvas>
+      <NonaCanvas 
+        v-show="!loading"
+        :n="n" 
+        :cubes="cubeArr" 
+        :cube-visibility="cubeVisibility"
+        :cube-highlight="cubeHighlight"
+        :clue-grids="clueGrids"
+        :section-x="sectionX"
+        :section-y="sectionY"
+        :controls="controls"
+        @painton="enablePaint"
+        @paint="paintCube"
+        @breakon="enableBreak"
+        @break="breakCube"
+      ></NonaCanvas>
+
+      <svg 
+        v-show="loading" 
+        id="loading" 
+        viewBox="-38 -38 76 76"
+        width="800">
+        <polygon 
+          points="0,-30 25.98,-15 25.98,15 0,30 -25.98,15 -25.98,-15 0,-30  2.598,-28.5"
+          :stroke-dasharray="`${90*progress} ${90*(1-progress)}`"
+        />
+      </svg>
+    
 
     <div class="slider slider-left">
       <input type="range" 
@@ -37,18 +49,6 @@
         :style="{ opacity: (sectionX != 1) ? 0.4 : 1 }" 
         min="1" :max="n+1"/>
     </div>
-
-    <svg 
-      v-show="loading" 
-      id="loading" 
-      viewBox="-38 -38 76 76"
-      width="800"
-      height="800">
-      <polygon 
-        points="0,-30 25.98,-15 25.98,15 0,30 -25.98,15 -25.98,-15 0,-30  2.598,-28.5"
-        :stroke-dasharray="`${90*progress} ${90*(1-progress)}`"
-      />
-    </svg>
 
     <div class="controls">
       <svg @click="swapControls" viewBox="-48 -48 96 96">
@@ -1034,7 +1034,6 @@ body {
     color: #2c3e50;
   }
   height: 100%;
-  width: 100vw;
   margin: 0;
   position: fixed;
   overflow-y: auto;
@@ -1042,6 +1041,7 @@ body {
   text-rendering: optimizeLegibility; 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  width: 100vw;
 }
 
 #home { 
@@ -1050,22 +1050,24 @@ body {
   align-self: start;
   margin: 0.5em;
 	a {
-    font-size: 0.75em;
-    color: #bbb;
+    color: #fff;
+    font: {
+      size: 0.75em;
+      weight: bold;
+    }
     text-decoration: none;
     height: 2em;
     line-height: 2em;
+    margin: 0.75em;
     &:hover {
       color: white;
       text-decoration: underline;
     }
-    margin: 0.75em;
-		color: #ffffff;
-		font-weight: bold;
 	}
 }
 
 #app {
+  align-content: start;
   align-items: center;
   background-color: hsl(0, 0, 25%);
   display: grid;
@@ -1074,22 +1076,21 @@ body {
     "header header header header header" minmax(3em, auto)
     ". main main main ." 1fr
     ". left middle right ." auto
-    ". footer footer footer ." minmax(2em, auto)
+    "footer footer footer footer footer" 2em
     / 1fr minmax(0em, 30em) 10vh minmax(0em, 30em) 1fr; 
   height: 100%;
-  justify-items: center;
   justify-content: center;
+  justify-items: center;
   margin: 0;
   position: relative;
   width: 100%;
 }
 
-
 #canvas {
-  position: relative;
   grid-area: main;
-  max-width: 135%;
   max-height: 110%;
+  max-width: 135%;
+  position: relative;
 }
 
 #loading {
@@ -1098,6 +1099,7 @@ body {
     stroke: #111; 
     fill: hsla(45, 20%, 80%, 0.7); 
     stroke-width: 2; 
+    height: 100%;
   }
 }
 
@@ -1149,7 +1151,6 @@ body {
   padding: 0.5em 0.25em;
   margin: 0.5em;
   position: absolute;
-  
 }
 
 .link {
@@ -1158,28 +1159,28 @@ body {
 
 .menu-btn {
   @include button;
-  font-size: 0.75em;
   align-self: flex-end;
   background: #0000 !important;
   color: white !important;
-  padding: 0 .5em;
-  margin: 0;
-  line-height: 1.5em;
+  font-size: 0.75em;
   height: 1.5em;
+  line-height: 1.5em;
+  margin: 0;
+  padding: 0 .5em;
 }
 
 .submenu {
-  z-index: 10;
-  font-size: 0.75em;
+  align-items: stretch; 
   border: solid #333 1px;
   border-bottom: none;
-  width: 90%;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch; 
-  justify-content: space-around;
   color: white;
+  display: flex;
+  font-size: 0.75em;
+  flex-direction: column;
+  justify-content: space-around;
   padding: 0.25em 0.25em;
+  width: 90%;
+  z-index: 10;
   button {
     @include button;
     margin: 0.2em;
@@ -1278,6 +1279,5 @@ body {
     &::-ms-thumb { @include thumb("./assets/greencursor.svg") }
   }
 }
-
 
 </style>
