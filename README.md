@@ -19,3 +19,9 @@ N: Generated puzzles are N x N x N large.
 Density: Fraction of puzzle cubes which are solid. 
 
 Clue removal: Proportion of clues for which removal is attempted. When set to 0, no clues are removed. When set to 1, more clues are removed, making the puzzle more difficult.
+
+# Deployment
+
+`npm run build`
+
+`$ ./deploy.sh`
