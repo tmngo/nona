@@ -111,7 +111,7 @@ export default {
     init() {
       this.canvas = document.getElementById('canvas');
       this.ctx = this.canvas.getContext('2d');
-      this.ctx.font = "600 0.35em Arial";
+      this.ctx.font = "700 0.35em Fira Sans";
       this.ctx.textAlign = "center";
       this.ctx.textBaseline = "middle";
       this.xPos = (this.canvas.width / 2) / this.size - 8.66;
@@ -341,8 +341,10 @@ export default {
 
     drawClue(ctx, x, y, clue, scale) {
       ctx.transform(scale, 0, 0, scale, 0, 0)
-      ctx.fillStyle = "rgba(0, 0, 0, 0.7)"
+      ctx.fillStyle = "rgba(0, 0, 0, 0.9)"
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.9)"
       ctx.lineWidth = 0.5;
+      
       let r = 3.4;
       if (clue.t.isVisible) {
         ctx.save()

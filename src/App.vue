@@ -53,53 +53,59 @@
     <div class="controls">
       <svg @click="swapControls" viewBox="-48 -48 96 96">
 
-        <rect x="-16" y="-48" width="64" height="64" stroke="black" stroke-width="2" fill="white"/>
+        <rect x="-16" y="-48" width="64" height="64" stroke="black" stroke-width="2" fill="hsl(45, 20%, 96%)"/>
         <line x1="-16" y1="16" x2="48" y2="-48"/>
         <line x1="-16" y1="-48" x2="48" y2="16"/>
         <transition name="fade">
-          <rect v-show="controls.paint === 2" x="-15" y="-47" width="62" height="62" stroke="white" stroke-width="2" fill="hsl(180, 50%, 50%)"/>
+          <rect v-show="controls.paint === 2" x="-15" y="-47" width="62" height="62" stroke="hsl(45, 20%, 96%)" stroke-width="2" fill="hsl(180, 50%, 50%)"/>
         </transition>
         <rect x="-16" y="-48" width="64" height="64" stroke="black" stroke-width="1" fill="none"/>
 
-        <rect x="-48" y="-16" width="64" height="64" stroke="black" stroke-width="2" fill="white"/>
+        <rect x="-48" y="-16" width="64" height="64" stroke="black" stroke-width="2" fill="hsl(45, 20%, 96%)"/>
         <line x1="-48" y1="48" x2="16" y2="-16"/>
         <line x1="-48" y1="-16" x2="16" y2="48"/>
         <transition name="fade">
-          <rect v-show="controls.paint === 0" x="-47" y="-15" width="62" height="62" stroke="white" stroke-width="2" fill="hsl(180, 50%, 50%)"/>
+          <rect v-show="controls.paint === 0" x="-47" y="-15" width="62" height="62" stroke="hsl(45, 20%, 96%)" stroke-width="2" fill="hsl(180, 50%, 50%)"/>
         </transition>
         <rect x="-48" y="-16" width="64" height="64" stroke="black" stroke-width="1" fill="none"/>
-        <text x="50" y="15" fill="white">R</text>
-        <text x="18" y="47" fill="white">L</text>
+        <text x="50" y="15" fill="hsl(45, 20%, 96%)">R</text>
+        <text x="18" y="47" fill="hsl(45, 20%, 96%)">L</text>
 
       </svg>
     </div>
 
-    <div class="menu">
-      <button class="menu-btn" @click="clearSelection();showMenu = !showMenu">Menu</button>
+    <div class="menu" :style="{ background: showMenu ? '#262626f2' : 'none'}" >
+      <button class="menu-btn" @click="clearSelection();showMenu = !showMenu">{{ showMenu ? '&#x2573;' : '&#9776;' }}</button>
 
       <div v-show="showMenu" class="submenu">
         <div class="button-strip">
           <button 
-            :style="{ color: type === 'uniform' ? '#fff' : '#404040'}" 
+            :style="{ color: type === 'uniform' ? '#000' : '#f7f6f3', background: type === 'uniform' ? '#f7f6f3' : 'none'}" 
+            style="border-radius: 4px 0 0 4px; margin-right: 0"
             @click="type = 'uniform'"
           >Uniform</button>
           <button 
-            :style="{ color: type === 'metaball' ? '#fff' : '#404040'}" 
+            :style="{ color: type === 'metaball' ? '#000' : '#f7f6f3', background: type === 'metaball' ? '#f7f6f3' : 'none'}" 
+            style="border-radius: 0 4px 4px 0; margin-left: 0"
             @click="type = 'metaball'"
           >Metaball</button>
         </div>
-        <hr style="width: 70%; margin: 0em auto 1em auto"/>
+      </div>
+
+      <div v-show="showMenu" class="submenu">
+        
         <label for="n">N = {{ newN }}</label>
-        <input name="n" type="range" min="2" max="8" v-model.number="newN"/>
+        <input class="range-input" name="n" type="range" min="2" max="8" v-model.number="newN"/>
 
         <label>Density = {{ newDensity }}</label>
-        <input type="range" min="0.1" max="0.9" step="0.1" v-model.number="newDensity"/>
+        <input class="range-input" type="range" min="0.1" max="0.9" step="0.1" v-model.number="newDensity"/>
 
         <label>Clue removal = {{ newRemoval }}</label>
-        <input type="range" min="0" max="1" step="0.1" v-model.number="newRemoval"/>
+        <input class="range-input" type="range" min="0" max="1" step="0.1" v-model.number="newRemoval"/>
 
         <label v-show="type === 'metaball'">Metaballs = {{ newOptions.metaballs }}</label>
         <input 
+          class="range-input"
           v-show="type === 'metaball'" 
           type="range" min="1" max="20" 
           v-model.number="newOptions.metaballs"
@@ -107,6 +113,7 @@
 
         <label v-show="type === 'metaball'">Noise = {{ newOptions.noise }}</label>
         <input 
+          class="range-input"
           v-show="type === 'metaball'" 
           type="range" min="0" 
           max="1" step="0.1" 
@@ -119,10 +126,10 @@
         <button @click="resetPuzzle">Reset puzzle</button>
       </div>
 
-      <div v-show="showMenu" class="submenu">
-        <p>Status = {{ this.n**3 - numSolid - numBroken === 0 ? 'solved' : 'unsolved' }}</p>
-        <p>Remaining = {{ this.n**3 - numSolid - numBroken }}</p>
-        <p>Strikes = {{ strikes }}</p>
+      <div v-show="showMenu" class="submenu" style="white-space: pre">
+        <p>{{ `Status:\t\t\t` }}{{ this.n**3 - numSolid - numBroken === 0 ? 'solved' : 'unsolved' }}</p>
+        <p>{{ `Remaining:\t\t` }}{{ this.n**3 - numSolid - numBroken }}</p>
+        <p>{{ `Strikes:\t\t\t` }}{{ strikes }}</p>
       </div>
 
       <div v-show="showMenu" class="submenu">
@@ -131,7 +138,7 @@
       </div>
 
       <div v-show="showMenu" class="submenu">
-        <a class="link" href="https://github.com/timmngo/nona">Help</a>
+        <a class="link" href="https://github.com/timmngo/nona">How to play</a>
       </div>
 
     </div>
@@ -608,11 +615,11 @@ body {
 }
 
 #home { 
-  color: #fff;
+  color: #f7f6f3;
 
   font: {
     size: 0.75em;
-    weight: bold;
+    weight: 700;
   }
   grid-area: header;
   height: 1.5em;
@@ -624,7 +631,7 @@ body {
   border-radius: 2px;
   z-index: 1;
   &:focus, &:hover {
-    color: white;
+    color: #f7f6f3;
     text-decoration: underline;
   }
 }
@@ -671,7 +678,7 @@ body {
 @mixin button() {
   font: {
     family: $font-stack;
-    weight: 600;
+    weight: 700;
     size: 1em;
   }
   text: {
@@ -680,14 +687,14 @@ body {
   }
   cursor: pointer;
   white-space: nowrap;
-  height: 2em;
-  padding: 0 14px;
+  height: 2.2em;
+  padding: 0 0.5rem;
   box-shadow: 0 4px 6px rgba(50,50,93,.11),0 1px 3px rgba(0,0,0,.08);
-  background: #fff;
+  background: none;
   border-radius: 3px;
-  line-height: 2em;
-  color: #404040;
-  border: none;
+  line-height: 2.2em;
+  color: #f7f6f3;
+  border: solid #f7f6f3 1px;
   -webkit-transition: all .15s ease;
   transition: all .15 s ease;
   &:focus, &:hover {
@@ -698,22 +705,22 @@ body {
     box-shadow: 0 7px 14px rgba(50,50,93,.1),0 3px 6px rgba(0,0,0,.08);
   }
   &:active {
-    background: #fff;
+    background: #f7f6f3;
     transform: translateY(1px);
     box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 }
 
 .menu {
-  align-items: center;
+  align-items: flex-end;
   align-self: start;
-  background: #000d;
-  border-radius: 4px;
+  background: #262626f2;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   grid-area: header;
   justify-self: end;
-  padding: 0.5em 0.25em;
+  padding-left: 0.75em;
   margin: 0.5em;
   position: absolute;
 }
@@ -725,26 +732,45 @@ body {
 .menu-btn {
   @include button;
   align-self: flex-end;
-  background: #0000 !important;
-  color: white !important;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: #f7f6f3;
   font-size: 0.75em;
-  height: 1.5em;
+  height: 2em;
   line-height: 1.5em;
-  margin: 0;
-  padding: 0 .5em;
+  margin: 0.25rem 0.25rem 0;
+  padding: 0 0.5em;
+  box-shadow: none;
+  &:focus {
+    background: none;
+    box-shadow: none;
+    color: #f7f6f3;
+  }
+  &:hover {
+    background: hsl(180, 50%, 80%);
+    box-shadow: none;
+    color: #000;
+    @include transform(translateY(-1px));
+  }
+  &:active {
+    background: #f7f6f3;
+    box-shadow: none;
+    color: black;
+    transform: translateY(1px);
+  }
 }
 
 .submenu {
   align-items: stretch; 
-  border: solid #333 1px;
-  border-bottom: none;
-  color: white;
+  background: none;
+  color: #f7f6f3;
   display: flex;
   font-size: 0.75em;
   flex-direction: column;
   justify-content: space-around;
   padding: 0.5em 0.5em;
-  width: 90%;
+  width: 100%;
   z-index: 10;
   button {
     @include button;
@@ -757,10 +783,14 @@ body {
     font-size: 0.9em;
   }
   &:first-of-type {
-
+    border-bottom: solid #333 1px;
   }
   &:last-child {
     border-bottom: solid #444 1px;
+  }
+  .range-input {
+    width: 90%;
+    margin: 0.25rem auto;
   }
 }
 
@@ -773,14 +803,17 @@ body {
     height: 2em;
     line-height: 2em;
     font-size: 1em;
+    text-align: center;
     width: 100%;
     &:focus, &:hover {
-      color: #fff;
-      background: none;
+      color: none;
+      background: #f7f6f3;
     }
     &:active {
       background: none;
     }
+    @include button;
+    text-align: center;
   }
 }
 
@@ -791,6 +824,7 @@ body {
   height: 100%;
   justify-content: center; 
   transition: all .15s ease;
+  cursor: pointer;
   svg {
     overflow: visible;
     width: 10vh; 
@@ -818,7 +852,6 @@ body {
   height: 0;
   border: none;
   width: 90%;
-  // border: dashed #333 3px;
 }
 
 @mixin thumb($image) {
@@ -834,6 +867,7 @@ body {
   align-self: start;
   height: 100%;
   input {
+    cursor: pointer;
     -webkit-appearance: none;
     background: none;
     min-width: 13em;
