@@ -583,7 +583,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "./assets/style/fonts.scss";
+// @import "./assets/style/fonts.scss";
 
 $font-stack: FiraSans, "Helvetica Neue", "Helvetica", Arial, sans-serif;
 
