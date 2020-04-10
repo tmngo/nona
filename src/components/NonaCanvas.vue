@@ -23,6 +23,7 @@ export default {
     sectionX: Number,
     sectionY: Number,
     controls: Object,
+    loading: Boolean,
   },
   data() {
     return {
@@ -34,10 +35,9 @@ export default {
       selection: null,
       dragOffX: 0,
       dragOffY: 0,
-      colorPaint: 'hsl(180, 50%, 80%)',
       xPos: 0,
       yPos: 0,
-      size: 8,
+
       selectedCube: null,
       selectedIndex: 0,
       drawIndex: 0,
@@ -57,16 +57,18 @@ export default {
       deep: true,
     },
     cubeVisibility() {
-      this.drawCubes(0);  
+      this.drawCubes(0);
     },
-    n(newN, oldN) {
-      this.size = oldN / newN * this.size;
+    n() {
       this.xPos = (this.canvas.width / 2) / this.size - 8.66;
       this.yPos = (this.canvas.height / 2) / this.size - 10;
-      this.drawCubes(0, oldN / newN);
+        this.drawCubes(0);
     }
   },
   computed: {
+    size() {
+      return 32 / this.n;
+    },
     puzzleWidth() {
       return 2 * this.n * 8.66;
     },
@@ -109,6 +111,9 @@ export default {
     init() {
       this.canvas = document.getElementById('canvas');
       this.ctx = this.canvas.getContext('2d');
+      this.ctx.font = "600 0.35em Arial";
+      this.ctx.textAlign = "center";
+      this.ctx.textBaseline = "middle";
       this.xPos = (this.canvas.width / 2) / this.size - 8.66;
       this.yPos = (this.canvas.height / 2) / this.size - 10;
       this.style.paddingLeft = parseInt(document.defaultView.getComputedStyle(this.canvas, null)['paddingLeft'], 10);
@@ -151,7 +156,7 @@ export default {
         let cube = this.visibleCubes[i];
         if (this.cubeContains(cube, mx, my)) {
           this.drawIndex = i;
-          this.$emit('break', cube.i, cube.j, cube.k)
+          this.$emit('break', cube)
           return;
         }
       }
@@ -233,34 +238,49 @@ export default {
       ctx.lineTo(x + 8.66*s, y + 20*s);
       ctx.stroke();
 
+      ctx.save()
+      this.ctx.setTransform(1,0,0,1,0,0)
       this.drawClue(this.ctx, x/scale, y/scale, this.visibleClues[this.selectedIndex], scale * this.size)
-      ctx.setTransform(this.size, 0, 0, this.size, 0, 0);
+      ctx.restore()
     },
 
     drawCubes(start = 0, scale = 1) {
+      if (this.loading) {
+        return;
+      }
       this.ctx.scale(scale, scale);
       if (start === 0) {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       }
-      
       for (let i = start; i < this.visibleCubes.length; i++) {
         let x = this.cubePositions[i].x;
         let y = this.cubePositions[i].y;
+        
         this.drawCube(this.ctx, x, y, this.visibleCubes[i], this.visibleHighlit[i]);
+        this.ctx.setTransform(1,0,0,1,0,0);
         this.drawClue(this.ctx, x, y, this.visibleClues[i], this.size);
       }
-      // console.log('draw')
-
     },
 
     drawCube(ctx, x, y, cube, highlit) {
+      
+      let topColor = "hsl(45, 20%, 96%)";
+      let leftColor = "hsl(45, 20%, 80%)";
+      let rightColor = "hsl(45, 20%, 64%)";
 
-      this.fillTopFace(ctx, x, y, 
-          cube.painted ? this.colorPaint : 'hsl(45, 20%, 96%)');
-      this.fillLeftFace(ctx, x, y, 
-          cube.painted ? "hsl(180, 50%, 70%)" : "hsl(45, 20%, 80%)");
-      this.fillRightFace(ctx, x, y, 
-          cube.painted ? "hsl(180, 30%, 50%)" : "hsl(45, 20%, 64%)");
+      if (cube.strike) {
+        topColor = "hsl(0, 50%, 80%)";
+        leftColor = "hsl(0, 50%, 70%)";
+        rightColor = "hsl(0, 30%, 50%)";
+      } else if (cube.painted) {
+        topColor = "hsl(180, 50%, 80%)";
+        leftColor = "hsl(180, 50%, 70%)";
+        rightColor = "hsl(180, 30%, 50%)";
+      }
+
+      this.fillTopFace(ctx, x, y, topColor);
+      this.fillLeftFace(ctx, x, y, leftColor);
+      this.fillRightFace(ctx, x, y, rightColor);
       this.drawCubeOutline(ctx, x, y, 1, '#000', 0.75);
 
       if (!highlit) {
@@ -320,16 +340,12 @@ export default {
     },
 
     drawClue(ctx, x, y, clue, scale) {
-      ctx.font = "600 0.35em Arial";
+      ctx.transform(scale, 0, 0, scale, 0, 0)
       ctx.fillStyle = "rgba(0, 0, 0, 0.7)"
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
       ctx.lineWidth = 0.5;
       let r = 3.4;
-
-      
       if (clue.t.isVisible) {
-        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        ctx.save()
         ctx.transform(1, 0, 0, 1, x + 8.66, y + 5);
         ctx.rotate(-Math.PI / 3);
         ctx.transform(0.866, 0.57735, 0, 1, 0, 0);
@@ -348,11 +364,12 @@ export default {
           ctx.closePath();
           ctx.stroke();
         }
+        ctx.restore()
       }
 
       if (clue.l.isVisible) {
-        ctx.setTransform(scale, 0, 0, scale, 0, 0);
-        ctx.transform(0.866, 0.57735, 0, 1, x + 4.33, y + 12.5);
+        ctx.save();
+        ctx.transform(.866, .57735, 0, 1, x+4.33, y + 12.5);
         ctx.fillText(clue.l.count, 0, 0);
         if (clue.l.groups === 2) {
           ctx.beginPath();
@@ -368,11 +385,12 @@ export default {
           ctx.closePath();
           ctx.stroke();
         }
+        ctx.restore()
       }
       
       if (clue.r.isVisible) {
-        ctx.setTransform(scale, 0, 0, scale, 0, 0);
-        ctx.transform(0.866, -0.57735, 0, 1, x + 12.99, y + 12.5);
+        ctx.save();
+        ctx.transform(.866, -.57735, 0, 1, x + 12.99, y + 12.5);
         ctx.fillText(clue.r.count, 0, 0);
         if (clue.r.groups === 2) {
           ctx.beginPath();
@@ -388,9 +406,8 @@ export default {
           ctx.closePath();
           ctx.stroke();
         }
+        ctx.restore()
       }
-      
-      ctx.setTransform(scale, 0, 0, scale, 0, 0);
     },
 
     getTotalCubePos(cube) {

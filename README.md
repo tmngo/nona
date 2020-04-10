@@ -1,6 +1,6 @@
 # nona
 
-3D nonogram puzzle generator (WIP).
+3D nonogram puzzle generator.
 
 # How to play
 
@@ -16,6 +16,6 @@ The red and green handles below the puzzle can be used to view different section
 
 N: Generated puzzles are N x N x N large. 
 
-density: Fraction of puzzle cubes which are solid. 
+Density: Fraction of puzzle cubes which are solid. 
 
-clue removal: Proportion of clues for which removal is attempted. 
+Clue removal: Proportion of clues for which removal is attempted. When set to 0, no clues are removed. When set to 1, more clues are removed, making the puzzle more difficult.

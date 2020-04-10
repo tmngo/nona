@@ -1,41 +1,42 @@
 <template>
   <div id="app" @mouseup="disablePaint" @mousedown.right.prevent>
+      
+    <a id="home" href="https://timmngo.github.io">timmngo.github.io</a>
 
-    <div id="home"><a href="https://ngotm.github.io">ngotm.github.io</a></div>
+    <NonaCanvas 
+      v-show="!loading"
+      :n="n" 
+      :cubes="cubeArr" 
+      :cube-visibility="cubeVisibility"
+      :cube-highlight="cubeHighlight"
+      :clue-grids="clueGrids"
+      :section-x="sectionX"
+      :section-y="sectionY"
+      :controls="controls"
+      :loading="loading"
+      @painton="enablePaint"
+      @paint="paintCube"
+      @breakon="enableBreak"
+      @break="breakCube"
+    ></NonaCanvas>
 
-      <NonaCanvas 
-        v-show="!loading"
-        :n="n" 
-        :cubes="cubeArr" 
-        :cube-visibility="cubeVisibility"
-        :cube-highlight="cubeHighlight"
-        :clue-grids="clueGrids"
-        :section-x="sectionX"
-        :section-y="sectionY"
-        :controls="controls"
-        @painton="enablePaint"
-        @paint="paintCube"
-        @breakon="enableBreak"
-        @break="breakCube"
-      ></NonaCanvas>
-
-      <svg 
-        v-show="loading" 
-        id="loading" 
-        viewBox="-38 -38 76 76"
-        width="800">
-        <polygon 
-          points="0,-30 25.98,-15 25.98,15 0,30 -25.98,15 -25.98,-15 0,-30  2.598,-28.5"
-          :stroke-dasharray="`${90*progress} ${90*(1-progress)}`"
-        />
-      </svg>
+    <svg 
+      v-show="loading" 
+      id="loading" 
+      viewBox="-38 -38 76 76"
+      width="800"
+    >
+      <polygon 
+        points="0,-30 25.98,-15 25.98,15 0,30 -25.98,15 -25.98,-15 0,-30  2.598,-28.5"
+        :stroke-dasharray="`${90*progress} ${90*(1-progress)}`"
+      />
+    </svg>
     
 
     <div class="slider slider-left">
       <input type="range" 
         v-model.number="sectionX" 
-        :disabled="sectionY != n+1" 
-        @dblclick="resetSectionView()"
+        @mousedown="resetSectionView()"
         :style="{opacity: (sectionY != n+1) ? 0.4 : 1}" 
         min="1" :max="n+1"/>
     </div>
@@ -44,8 +45,7 @@
       <input 
         type="range" 
         v-model.number="sectionY" 
-        :disabled="sectionX != 1" 
-        @dblclick="resetSectionView()"
+        @mousedown="resetSectionView()"
         :style="{ opacity: (sectionX != 1) ? 0.4 : 1 }" 
         min="1" :max="n+1"/>
     </div>
@@ -75,35 +75,63 @@
     </div>
 
     <div class="menu">
-      <button class="menu-btn" @click="showMenu = !showMenu">Menu</button>
+      <button class="menu-btn" @click="clearSelection();showMenu = !showMenu">Menu</button>
 
       <div v-show="showMenu" class="submenu">
-        <input type="range" min="2" max="7" v-model.number="newN"/>
-        <p>N = {{ newN }}</p>
+        <div class="button-strip">
+          <button 
+            :style="{ color: type === 'uniform' ? '#fff' : '#404040'}" 
+            @click="type = 'uniform'"
+          >Uniform</button>
+          <button 
+            :style="{ color: type === 'metaball' ? '#fff' : '#404040'}" 
+            @click="type = 'metaball'"
+          >Metaball</button>
+        </div>
+        <hr style="width: 70%; margin: 0em auto 1em auto"/>
+        <label for="n">N = {{ newN }}</label>
+        <input name="n" type="range" min="2" max="8" v-model.number="newN"/>
 
+        <label>Density = {{ newDensity }}</label>
         <input type="range" min="0.1" max="0.9" step="0.1" v-model.number="newDensity"/>
-        <p>density = {{ newDensity }}</p>
 
+        <label>Clue removal = {{ newRemoval }}</label>
         <input type="range" min="0" max="1" step="0.1" v-model.number="newRemoval"/>
-        <p>clue removal = {{ newRemoval }}</p>
 
-        <button @mousedown="loading = true" @click="generatePuzzle(newN, newDensity)">Generate Puzzle</button>  
-        <button @click="resetPuzzle">Reset Puzzle</button>
+        <label v-show="type === 'metaball'">Metaballs = {{ newOptions.metaballs }}</label>
+        <input 
+          v-show="type === 'metaball'" 
+          type="range" min="1" max="20" 
+          v-model.number="newOptions.metaballs"
+        />
 
+        <label v-show="type === 'metaball'">Noise = {{ newOptions.noise }}</label>
+        <input 
+          v-show="type === 'metaball'" 
+          type="range" min="0" 
+          max="1" step="0.1" 
+          v-model.number="newOptions.noise"
+        />
+
+        <button 
+          @click="generatePuzzleInWorker(newN, newDensity, newRemoval, type, newOptions)"
+        >Generate puzzle</button>  
+        <button @click="resetPuzzle">Reset puzzle</button>
       </div>
 
       <div v-show="showMenu" class="submenu">
-        <p>remaining = {{ this.n**3 - numSolid - numBroken }}</p>
-        <p>strikes = {{ strikes }}</p>
+        <p>Status = {{ this.n**3 - numSolid - numBroken === 0 ? 'solved' : 'unsolved' }}</p>
+        <p>Remaining = {{ this.n**3 - numSolid - numBroken }}</p>
+        <p>Strikes = {{ strikes }}</p>
       </div>
 
       <div v-show="showMenu" class="submenu">
-        <button @click="solveN(1)">Solve Iteration</button>
-        <button @click="solve">Solve Complete</button>
+        <button @click="solveIterationInWorker">Solve iteration</button>
+        <button @click="solveInWorker">Solve complete</button>
       </div>
 
       <div v-show="showMenu" class="submenu">
-        <a class="link" href="https://github.com/ngotm/nona">Help</a>
+        <a class="link" href="https://github.com/timmngo/nona">Help</a>
       </div>
 
     </div>
@@ -113,6 +141,7 @@
 
 <script>
 import NonaCanvas from './components/NonaCanvas.vue'
+import myWorker from './assets/worker';
 
 export default {
   name: 'app',
@@ -122,21 +151,30 @@ export default {
   data() {
     return {
       grid: [],
+      clueGrids: {
+        l: [],
+        r: [],
+        t: [],
+      },
       sections: [],
       newN: 5,
-      newDensity: 0.3,
-      newRemoval: 0,
-      n: 4,
-      density: 0.3,
+      newDensity: 0.4,
+      newRemoval: 1,
+      newOptions: {
+        metaballs: 12,
+        noise: 0.9,
+      },
+      n: 5,
       loading: false,
       paintEnabled: false,
       breakableId: "",
       paintType: true,
       progress: 0,
       sectionX: 1,
-      sectionY: 5,
+      sectionY: 6,
       strikes: 0,
       showMenu: false,
+      type: 'uniform',
       controls: {
         break: 2,
         paint: 0,
@@ -176,100 +214,17 @@ export default {
     numBroken() {
       return this.fastReduce(this.cubeArr, (count, cube) => (count + cube.broken), 0);
     },
-    arr() {
-      let arr = []
-      for (let i = 0; i < this.n; i++) {
-        arr.push(i)
-      }
-      return arr
-    },
-    lines() {
-      return {
-        t: this.arr.map(y => this.arr.map(x => this.grid[x][y])),
-        l: this.arr.map(z => this.arr.map(y => this.arr.map(x => this.grid[x][y][z]))), 
-        r: this.arr.map(z => this.arr.map(x => this.arr.map(y => this.grid[x][y][z])))
-      };
-    },
-    clueGrids() {
-      return {
-        t: this.lines.t.map(row => row.map(line => this.createClueFromLine(line))),
-        l: this.lines.l.map(row => row.map(line => this.createClueFromLine(line))),
-        r: this.lines.r.map(row => row.map(line => this.createClueFromLine(line)))
-      }
-    },
-    cubeLinesL() {
-      return this.arr.map(z => this.arr.map(y => this.arr.map(x => this.grid[x][y][z]))).flat();
-    },
-    cubeLinesR() {
-      return this.arr.map(z => this.arr.map(x => this.arr.map(y => this.grid[x][y][z]))).flat();
-    },
-    cubeLinesT() {
-      return this.arr.map(y => this.arr.map(x => this.grid[x][y])).flat();
-    },
-    cubeLines() {
-      return {
-        l: this.cubeLinesL,
-        r: this.cubeLinesR,
-        t: this.cubeLinesT,
-      }
-    },
-    cluesL() {
-      return this.clueGrids.l.flat();
-    },
-    cluesR() {
-      return this.clueGrids.r.flat();
-    },
-    cluesT() {
-      return this.clueGrids.t.flat();
-    },
-    clues() {
-      return {
-        l: this.cluesL,
-        r: this.cluesR,
-        t: this.cluesT
-      }
-    },
-    clueList() {
-      return this.clues.l.concat(this.clues.r, this.clues.t);
-    },
-    paintedL() { // start0001end
-      return this.cubeLinesL.map(line => this.fastReduce(line, this.reducerPainted, 0))
-    },
-    paintedR() { // start0001end
-      return this.cubeLinesR.map(line => this.fastReduce(line, this.reducerPainted, 0))
-    },
-    paintedT() { // start0001end
-      return this.cubeLinesT.map(line => this.fastReduce(line, this.reducerPainted, 0))
-    },
-    painted() {
-      return {
-        l: this.paintedL,
-        r: this.paintedR,
-        t: this.paintedT
-      }
-    },
-    unbrokenL() { // start0001end
-      return this.cubeLinesL.map(line => this.fastReduce(line, this.reducerUnbroken, 0))
-    },
-    unbrokenR() { // start0001end
-      return this.cubeLinesR.map(line => this.fastReduce(line, this.reducerUnbroken, 0))
-    },
-    unbrokenT() { // start0001end
-      return this.cubeLinesT.map(line => this.fastReduce(line, this.reducerUnbroken, 0))
-    },
-    unbroken() {
-      return {
-        l: this.unbrokenL,
-        r: this.unbrokenR,
-        t: this.unbrokenT
-      }
+    clueArr() {
+      return this.clueGrids.l.concat(this.clueGrids.r, this.clueGrids.t).flat();
     },
     solved() {
       return (this.n**3 - this.numSolid - this.numBroken) === 0 && (this.numPainted === this.numSolid);
     }
   },
-  created: function () {
-    this.generateRandomPuzzle(4, this.density);
+  created() {
+    this.generatePuzzleInWorker(5, 0.4, 1, "uniform", this.newOptions)
+  },
+  mounted() {
   },
   methods: {
 
@@ -279,127 +234,84 @@ export default {
     /* Puzzle generation */ 
     /*********************/
 
-    generateRandomPuzzle(size, density) {
-      this.n = size;
-      this.density = density;
-      let puzzle = [];
-      for (let i = 0 ; i < size; i++) { 
-        puzzle[i] = [];
-        for (let j = 0; j < size; j++) {
-          puzzle[i][j] = [];
-          for (let k = 0; k < size; k++) {
-            puzzle[i][j][k] = {
-              id: i + "," + j + "," + k,
-              i: i,
-              j: j,
-              k: k,
-              solid: Math.random() < this.density,
-              painted: false,
-              broken: false,
-              selected: false,
-            }
-          }
-        } 
-      }
-      this.sectionX = 1;
-      this.sectionY = this.n + 1;
-      this.grid = puzzle;
+    generatePuzzleInWorker(size, density, removal, type, options) {
+      this.strikes = 0;
 
+      myWorker.send({
+        command: "generate",
+        size: size,
+        density: density,
+        removal: removal,
+        type: type,
+        options: options,
+      }).then(reply => {
+          this.n = size;
+          this.grid = reply.grid;
+          this.clueGrids = reply.clueGrids;
+          this.resetPuzzle()
+          this.resetSectionView();
+        })
     },
 
-    generatePuzzle(size, density) {
-      this.generateRandomSolvablePuzzle(size, density);
-      if (this.newRemoval === 0) {
-        this.sectionX = 1;
-        this.sectionY = this.n + 1;
-        this.resetPuzzle();
-        this.loading = false;
-        return;
-      }
-      this.removeClues(this.newRemoval);      
+    generateSolvedInWorker(size, density, removal, type, options) {
+      this.strikes = 0;
+
+      myWorker.send({
+        command: "generate",
+        size: size,
+        density: density,
+        removal: removal,
+        type: type,
+        options: options,
+      }).then(reply => {
+          this.n = size;
+          this.grid = reply.grid;
+          this.clueGrids = reply.clueGrids;
+          this.resetSectionView();
+        })
     },
 
-    generateRandomSolvablePuzzle(size, density) {
-      let iterations = 1;
-      this.progress = 1;
-      do {
-        this.generateRandomPuzzle(size, density)
-        console.log(iterations);
-      }
-      while (iterations++ < 20 && !this.solve());
-      console.log('unsolved: ' + (iterations - 1) + ' solved: ' + (this.solved ? 1 : 0));
+    solveInWorker() {
+      myWorker.send({
+        command: "solve",
+        grid: this.grid,
+        clueGrids: this.clueGrids,
+      }).then(reply => {
+          this.grid = reply.grid;
+          this.clueGrids = reply.clueGrids;
+        })
     },
 
-    removeClues(frac = 1, i = 0, removed = 0) {
-      let numClues = Math.min(Math.round(frac * 3*this.n*this.n), 3*this.n*this.n)
-      let arr = this.shuffledNumbers(numClues)
-      removed += this.removeClue(arr, i++);
-      if (i % 3 === 0 && i < numClues) {
-        this.progress = (i + 1) / numClues;
-        setTimeout(this.removeClues, 1, frac, i, removed);
-      } else if (i < numClues) {
-        this.removeClues(0.4, i, removed)
-      } else {
-        this.sectionX = 1;
-        this.sectionY = this.n + 1;
-        this.resetPuzzle();
-        this.loading = false;
-        this.progress = 0;
-        console.log(`removed: ${removed}`)
-      }
+    solveIterationInWorker() {
+      myWorker.send({
+        command: "solve-iteration",
+        grid: this.grid,
+        clueGrids: this.clueGrids,
+      }).then(reply => {
+          this.grid = reply.grid;
+          this.clueGrids = reply.clueGrids;
+        })
     },
 
-    removeClue(arr, i) {
-      this.resetPuzzle();
-      let f = arr[i] % 3;
-      let p = parseInt(arr[i] / 3 / this.n);
-      let q = parseInt(arr[i] / 3) % this.n;
-      this.clueGrids['lrt'[f]][p][q].isVisible = false;
-      if (!this.solve()) {
-        this.clueGrids['lrt'[f]][p][q].isVisible = true;
-      }
-      return !this.clueGrids['lrt'[f]][p][q].isVisible
-    },
-
+    /* Resets puzzle to its unsolved state */
     resetPuzzle() {
       for (let i = 0; i < this.cubeArr.length; i++) {
-        let cube = this.cubeArr[i];
-        cube.painted = false;
-        cube.broken = false;
+        this.cubeArr[i].painted = false;
+        this.cubeArr[i].broken = false;
       }
-      for (let i = 0; i < this.n*this.n; i++) {
-        this.clues.l[i].isSolved = false;
-        this.clues.r[i].isSolved = false;
-        this.clues.t[i].isSolved = false;
-      }
-    },
-
-    createClueFromLine(line) {
-      let count = 0;
-      let groups = 0;
-      let inside = false;
-      for (let i = 0; i < line.length; i++) {
-        if (line[i].solid) {
-          if (!inside) {
-            groups++;
-          }
-          ++count;
-          inside = true;
-        } else {
-          inside = false;
-        }
-      }
-      return {
-        isSolved: false,
-        isVisible: true,
-        count: count,
-        groups: groups
+      for (let i = 0; i < 3*this.n*this.n; i++) {
+        this.clueArr[i].isSolved = false;
       }
     },
 
     /******************/
     /* Input handling */
     /******************/
+
+    clearSelection() {
+      if (window.getSelection) {window.getSelection().removeAllRanges();}
+      else if (document.selection) {document.selection.empty();}
+    },
 
     enablePaint(x, y, z) {
       this.paintEnabled = true;
@@ -423,14 +335,15 @@ export default {
       }
     },
 
-    breakCube(x, y, z) {
-      if (this.grid[x][y][z].id !== this.breakableId || this.grid[x][y][z].painted) {
+    breakCube(cube) {
+      if (cube.id !== this.breakableId || cube.painted) {
         this.breakableId = "";
         return;
       }
-      if (!this.grid[x][y][z].solid) {
-        this.grid[x][y][z].broken = true;
-      } else {
+      if (!cube.solid) {
+        cube.broken = true;
+      } else if (!cube.strike) {
+        cube.strike = true;
         this.strikes++;
       }
       this.breakableId = "";
@@ -445,324 +358,6 @@ export default {
     resetSectionView() {
       this.sectionY = this.n+1;
       this.sectionX = 1;
-    },
-
-    /***********/
-    /* Solving */
-    /***********/
-
-    /* Solves every line of every face until no progress is made. */
-    repeatSolve(newN, newDensity, n) {
-      for (let i = 0; i < n; i++) {
-        this.generateRandomPuzzle(newN, newDensity); 
-        this.solve()
-      }
-    },
-
-    /* Solves every line of every face until no progress is made. */
-    solve() {
-      let currentBroken = this.numBroken;
-      let currentPainted = this.numPainted;
-      do {
-        currentBroken = this.numBroken;
-        currentPainted = this.numPainted;
-        this.solveFaces(this.n);
-      } while ((currentBroken !== this.numBroken) && (currentPainted !== this.numPainted))
-      // if ((currentBroken !== this.numBroken) && (currentPainted !== this.numPainted)) {
-      //   setTimeout(this.solve, 150);
-      // }
-      return this.numBroken === (this.n**3 - this.numSolid) && (this.numPainted === this.numSolid);
-    },
-
-    solveFaces() {
-      this.solveLines(this.n, "t");
-      this.solveLines(this.n, "r");
-      this.solveLines(this.n, "l");
-    },
-
-    solveN(n) {
-      for (let i = 0; i < n; i++) {
-        this.solveFaces(this.n);
-      }
-      // console.log(n);
-    },
-
-    /* Solves each line of a given face once. */
-    solveLines(n, face) {
-      let cubes = this.cubeLines[face];
-      let clues = this.clues[face];
-      let painted = this.painted[face];
-      let unbroken = this.unbroken[face];
-      for (let i = 0; i < n*n; i++) {
-        if ((!clues[i].isSolved) && (clues[i].isVisible)) {
-          let output = this.solveLine(painted[i], unbroken[i], n, clues[i].count, clues[i].groups);
-          this.modifyLine(cubes[i], output);
-          if (painted[i] === unbroken[i]) {
-            clues[i].isSolved = true;
-          }
-        }
-      }
-    },
-
-    /* Builds the rightmost (least-significant) solution of a line, without 
-     * accounting for known (painted) solids. */
-    placeRightSimple(blockSizes, unbrokenBits) {
-      let blockBits = 0;
-      let blocks = [];
-      for (let i = 0; i < blockSizes.length; i++) {
-        let block = this.ones(blockSizes[i]);
-        while (((block | unbrokenBits)) != unbrokenBits 
-            || ((((block >> 1) | block) & blockBits) != 0)
-            || block <= blockBits) {
-          block <<= 1;
-          if (block > unbrokenBits) return [];
-        }
-        blockBits |= block;
-        blocks.push(block)
-      }
-      return blocks;
-    },
-
-    /* Builds the rightmost (least-significant) solution of a line, accounting 
-     * for known (painted) solids. 
-     * 
-     * blocks:        [1, 2, 1, 3, ...]
-     * unbrokenBits:  1111101111
-     * paintedBits:   0000100000
-     * */
-    placeRightComplex(blockSizes, unbrokenBits, paintedBits) {
-
-      // initial simple placement
-      let blocks = this.placeRightSimple(blockSizes, unbrokenBits);
-      let i = blocks.length;
-
-      // if simple placement fails, return
-      if (i === 0) return [];
-
-      let blockBits = this.mergeBlocks(blocks);
-      let paintBlocks = this.makeSingles(paintedBits); // L -> R
-      let leftmostSolid;
-      let leftmostBlock;
-      let x;
-
-      // while there are unassigned solids
-      while ((blockBits & paintedBits) !== paintedBits) { 
-
-          if (i === 0) return [];
-
-          // get the leftmost unassigned solid
-          x = paintBlocks.length - 1;
-          leftmostSolid = paintBlocks[x];
-          while ((leftmostSolid & blockBits)) {
-            if (x === 0) return [];
-            leftmostSolid = paintBlocks[--x]
-          }   
-
-          // get the block to the right of the unassigned solid
-          leftmostBlock = blocks[--i];
-          for (i; i >= 0; i--) {
-            if (blocks[i] < leftmostSolid) {
-              leftmostBlock = blocks[i];
-              break;
-            }
-          }
-          if (leftmostBlock > leftmostSolid) return [];
-
-          // move the block until its left edge overlaps the unassigned solid
-          while ((leftmostBlock & leftmostSolid) === 0) {
-            leftmostBlock <<= 1;
-          }
-          
-          // while the block overlaps the unassigned solid 
-          while (leftmostBlock & leftmostSolid) {
-
-            // split blocks
-            let leftBlocks = blocks.slice(i+1);
-            let leftBlockBits = this.mergeBlocks(leftBlocks);
-            let rightBlockBits = this.mergeBlocks(blocks.slice(0, i));
-            
-            // if this is a valid position (on unbroken blocks)
-            if (((leftmostBlock & unbrokenBits) === leftmostBlock)) {
-
-              // if left blocks overlap and need to be repositioned
-              if ((leftmostBlock | (leftmostBlock << 1)) & leftBlockBits) {
-                // reposition all blocks to the left of this block
-                let freeBits = ~this.ones(leftmostBlock.toString(2).length + 1) & unbrokenBits;
-                let leftBlockSizes = leftBlocks.map(x => this.countOnes(x));
-                let movedLeftBlocks = this.placeRightSimple(leftBlockSizes, freeBits);    
-                if (leftBlocks.length && !movedLeftBlocks.length) {
-                  return [];
-                }
-                leftBlockBits = this.mergeBlocks(movedLeftBlocks);
-              }
-              
-              // re-merge changed blocks
-              blockBits = leftBlockBits | leftmostBlock | rightBlockBits;
-              blocks = this.makeBlocks(blockBits);
-              i = blocks.length;
-              // move on to next unassigned solid
-              break;
-            }
-            else {
-              leftmostBlock <<= 1;
-            }
-
-          }
-
-      }
-
-      return blocks;
-
-    },
-
-    /* Builds the rightmost (least-significant) solution of a line, accounting 
-     * for known (painted) solids. */
-    placeRight(blockSizes, unbrokenBits, paintedBits) {
-      return (paintedBits) ? this.placeRightComplex(blockSizes, unbrokenBits, paintedBits)
-          : this.placeRightSimple(blockSizes, unbrokenBits);
-    },
-
-    /* Builds the leftmost (most-significant) solution of a line, accounting 
-     * for known (painted) solids. */
-    placeLeft(blockSizes, unbrokenBits, paintedBits, lineWidth) {
-      unbrokenBits = this.reverseNBits(unbrokenBits, lineWidth);
-      paintedBits = this.reverseNBits(paintedBits, lineWidth);
-      return this.placeRightComplex(blockSizes.reverse(), unbrokenBits, paintedBits)
-          .map(x => this.reverseNBits(x, lineWidth), this).reverse();
-    },
-
-    /* Solves line and returns bits corresponding to cubes deduced to be solid 
-     * and cubes deduced to be empty. */
-    solveLine(paintedBits, unbrokenBits, lineWidth, clueCount, clueGroups) {
-      let ones = this.ones(lineWidth);
-      let lineToPaint = 0;
-      let lineToBreak = 0;
-
-      // Empty line
-      if (unbrokenBits === 0) {
-        return {
-          paint: lineToPaint,
-          break: lineToBreak
-        };
-      }
-      // Complete paint
-      if (clueCount === this.countOnes(unbrokenBits)) {
-        lineToPaint = unbrokenBits;
-      }
-      // Complete break
-      else if (clueCount === this.countOnes(paintedBits)) {
-        lineToBreak = unbrokenBits && ~paintedBits;
-      }
-      // Single left-right solve (totally unbroken, unpainted)
-      else if (clueGroups === 1 && paintedBits === 0 && unbrokenBits === ones) {
-        let rightBlock = this.ones(clueCount);
-        let leftBlock = rightBlock << (lineWidth - clueCount);
-        lineToPaint = leftBlock & rightBlock;
-      } 
-      // Single left-right solve (general)
-      else if (clueGroups === 1) {
-        let rightBlock = this.ones(clueCount);
-        let leftBlock = rightBlock << (lineWidth - clueCount);
-        // while R doesn't cover paintedBits OR R is not within unbrokenBits
-        while (((rightBlock & paintedBits) != paintedBits) || ((rightBlock | unbrokenBits)) != unbrokenBits) {
-          rightBlock <<= 1;
-        }
-        while (((leftBlock & paintedBits) != paintedBits) || ((leftBlock | unbrokenBits)) != unbrokenBits) {
-          leftBlock >>>= 1;
-        }
-        
-        lineToPaint = paintedBits ^ (leftBlock & rightBlock);
-        if (leftBlock & rightBlock) {
-          lineToBreak = ones ^ (leftBlock | rightBlock);
-        } else {
-          let unbrokenBlocks = this.makeBlocks(unbrokenBits);
-          for (let i = 0; i < unbrokenBlocks.length; i++) {
-            if (this.countOnes(unbrokenBlocks[i]) < clueCount) {
-              lineToBreak |= unbrokenBlocks[i]
-            }
-          }
-        }
-      }
-      // Double (totally unbroken, width-1)
-      else if (clueGroups == 2 && unbrokenBits == ones && (clueCount === lineWidth - 1)) {
-        lineToPaint = (1 << (lineWidth - 1)) + 1;
-      }
-      // Double (contiguous unbroken, width-1)
-      else if (clueGroups == 2 
-          && (this.countOnes(unbrokenBits) == this.countMaxConsecutiveOnes(unbrokenBits)) 
-          && (clueCount === this.countOnes(unbrokenBits) - 1)) {
-        lineToPaint = (1 << (this.countOnes(unbrokenBits) - 1)) + 1;
-        while ((lineToPaint & unbrokenBits) != lineToPaint) {
-          lineToPaint <<= 1;
-        }
-      }
-      // Double / triple (general)
-      else if (clueGroups > 1) {
-        // console.log('[' + lineWidth + ', ' + clueCount + ', ' + clueGroups + ', 0b' 
-        //     + unbrokenBits.toString(2) + ', 0b' + paintedBits.toString(2) + ', 0b0, 0b0]')
-
-        let permutations = this.findValidCompositions(clueCount, clueGroups, lineWidth);
-        let possibleSolids = [];
-        let possibleEmptys = [];
-        for (let i = 0; i < permutations.length; i++) {
-          let blockSizes = permutations[i];
-          // console.log(blockSizes);
-          let right = this.placeRight(blockSizes, unbrokenBits, paintedBits);
-          // console.log("r " + right.map(x => x.toString(2)))
-          let left = this.placeLeft(blockSizes, unbrokenBits, paintedBits, lineWidth);
-          // console.log("l " + left.map(x => x.toString(2)))
-
-          // Skip permutation if it cannot be placed
-          if (right.length === 0 || left.length === 0) {
-            continue;
-          }
-          // console.log("R " + this.mergeBlocks(right).toString(2))
-          // console.log("L " + this.mergeBlocks(left).toString(2))
-
-          // Determine solid cubes based on left-right overlap of each block
-          let solid = 0;
-          for (let j = 0; j < right.length; j++) {
-            solid |= (right[j] & left[j]);
-          }
-          possibleSolids.push(solid);
-
-          // Determine empty cubes based on left-right range of each block
-          let empty = 0;
-          for (let a = 0; a < lineWidth; a++) {
-            let cell = (1 << a);
-            for (let b = 0;  b < right.length; b++) {
-              if (((cell <= left[b]) && (cell >= right[b])) || ((cell & right[b]) !== 0)) {
-                cell = 0;
-                break;
-              }
-            }
-            empty |= cell;
-          }
-
-          // Determine empty cubes based on adjacency to complete blocks
-          let paintBlocks = this.makeBlocks(paintedBits);
-          if (((this.countOnes(paintedBits) === clueCount - 1)
-              && ((clueGroups === 2 && paintBlocks.length === 1) 
-              || (clueGroups > 2 && paintBlocks.length === 2))) 
-              || (clueGroups > 2 && this.countMaxConsecutiveOnes(paintedBits) === clueCount - 2)) {
-            let adjacent = (paintedBits << 1 | paintedBits >> 1) & ~paintedBits;
-            adjacent = adjacent & ones;
-            empty |= adjacent;
-            empty = (empty & ~solid) & ones;
-          }
-          possibleEmptys.push(empty);
-
-          // console.log("solid: " + solid.toString(2))
-          // console.log("empty: " + empty.toString(2))
-        }
-        // Merge all potential solutions
-        lineToPaint = (possibleSolids.length) ? this.fastReduce(possibleSolids, (bits, p) => (bits & p)) : 0;
-        lineToBreak = (possibleEmptys.length) ? this.fastReduce(possibleEmptys, (bits, b) => (bits & b)) : 0;
-      }
-      return {
-        paint: lineToPaint & ~paintedBits,  // prevent repainting
-        break: lineToBreak & unbrokenBits   // prevent rebreaking
-      };
     },
 
     testLines() {
@@ -831,40 +426,6 @@ export default {
       return solnP === soln.paint && solnB === soln.break;
     },
 
-    /* Modifies array of cubes based on input array */
-    modifyLine(cubeLine, input) {
-      for (let i = 0; i < cubeLine.length; i++) {
-        let cube = cubeLine[i];
-        cube.painted |= ((input.paint & (1 << (cubeLine.length - i - 1))) != 0);
-        cube.broken |= ((input.break & (1 << (cubeLine.length - i - 1))) != 0);
-        if (cube.broken && cube.solid) {
-          this.strikes++;
-          cube.broken = false;
-          console.log("strike");
-        }
-      }
-    },
-    
-    /*******************/
-    /* Array functions */
-    /*******************/
-
-    shuffledNumbers(n) {
-      let arr = [];
-      for (let i = 0; i < n; i++) {
-        arr[i] = i;
-      }
-      return this.shuffle(arr);
-    },
-
-    shuffle(a) {
-      for (let i = a.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [a[i], a[j]] = [a[j], a[i]];
-      }
-      return a;
-    },
-
     fastReduce(arr, reducer, initialValue = arr[0]) {
       let accumulator = initialValue;
       for (let i = 0; i < arr.length; i++) {
@@ -877,13 +438,15 @@ export default {
     /* Numeric functions */
     /*********************/
 
-    
-
-    /* Returns a random integer uniformly between min and max, inclusive */
+    /* Returns a random integer uniformly between min (inclusive) and max (exclusive) */
     getRandomInt(min, max) {
       min = Math.ceil(min);
       max = Math.floor(max);
       return Math.floor(Math.random() * (max - min)) + min; 
+    },
+
+    computeDistanceSquared(a, b) {
+      return Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2);
     },
 
     /* Returns an array of all possible expansions for a clue in a line of 
@@ -1013,7 +576,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "./assets/fonts.scss";
+@import "./assets/style/fonts.scss";
 
 $font-stack: FiraSans, "Helvetica Neue", "Helvetica", Arial, sans-serif;
 
@@ -1029,8 +592,8 @@ $font-stack: FiraSans, "Helvetica Neue", "Helvetica", Arial, sans-serif;
 
 body {
   font: {
-    family: FiraSans, Times, sans-serif !important;
-    size: 1em;
+    family: $font-stack !important;
+    size: 1rem;
     color: #2c3e50;
   }
   height: 100%;
@@ -1045,25 +608,25 @@ body {
 }
 
 #home { 
+  color: #fff;
+
+  font: {
+    size: 0.75em;
+    weight: bold;
+  }
   grid-area: header;
+  height: 1.5em;
+  line-height: 1.5em;
   justify-self: start;
-  align-self: start;
-  margin: 0.5em;
-	a {
-    color: #fff;
-    font: {
-      size: 0.75em;
-      weight: bold;
-    }
-    text-decoration: none;
-    height: 2em;
-    line-height: 2em;
-    margin: 0.75em;
-    &:hover {
-      color: white;
-      text-decoration: underline;
-    }
-	}
+  margin: 1.25em;
+  text-decoration: none;
+  width: 3em;
+  border-radius: 2px;
+  z-index: 1;
+  &:focus, &:hover {
+    color: white;
+    text-decoration: underline;
+  }
 }
 
 #app {
@@ -1096,10 +659,12 @@ body {
 #loading {
   @extend #canvas;
   polygon {
-    stroke: #111; 
     fill: hsla(45, 20%, 80%, 0.7); 
-    stroke-width: 2; 
     height: 100%;
+    stroke: #111; 
+    stroke-width: 2; 
+    // transition: all linear 0.005s;
+    // transition-delay: 0.01s;
   }
 }
 
@@ -1110,9 +675,10 @@ body {
     size: 1em;
   }
   text: {
-    align: center;
+    align: left;
     decoration: none;
   }
+  cursor: pointer;
   white-space: nowrap;
   height: 2em;
   padding: 0 14px;
@@ -1120,7 +686,6 @@ body {
   background: #fff;
   border-radius: 3px;
   line-height: 2em;
-  text-transform: uppercase;
   color: #404040;
   border: none;
   -webkit-transition: all .15s ease;
@@ -1178,7 +743,7 @@ body {
   font-size: 0.75em;
   flex-direction: column;
   justify-content: space-around;
-  padding: 0.25em 0.25em;
+  padding: 0.5em 0.5em;
   width: 90%;
   z-index: 10;
   button {
@@ -1188,8 +753,34 @@ body {
   a, p {
     margin: 0.2em;
   }
+  label {
+    font-size: 0.9em;
+  }
+  &:first-of-type {
+
+  }
   &:last-child {
     border-bottom: solid #444 1px;
+  }
+}
+
+
+.button-strip {
+  display: flex;
+  button {
+    background: none;
+    padding: 0;
+    height: 2em;
+    line-height: 2em;
+    font-size: 1em;
+    width: 100%;
+    &:focus, &:hover {
+      color: #fff;
+      background: none;
+    }
+    &:active {
+      background: none;
+    }
   }
 }
 
@@ -1224,17 +815,19 @@ body {
 }
 
 @mixin track() {
-  width: 90%;
-  background: transparent;
+  height: 0;
   border: none;
+  width: 90%;
+  // border: dashed #333 3px;
 }
 
 @mixin thumb($image) {
-  width: 5.5em;
-  height: 5.5em;
-  border: none;
   -webkit-appearance: none;
   background: transparent url($image) no-repeat;
+  background-position: center; 
+  border: none;
+  height: 5.5em;
+  width: 5.5em;
 }
 
 .slider {
@@ -1243,9 +836,9 @@ body {
   input {
     -webkit-appearance: none;
     background: none;
-    width: 25vw;
     min-width: 13em;
     max-width: 20em;
+    width: 25vw;
     &::-webkit-slider-runnable-track { @include track }
     &::-moz-range-track { @include track }
     &::-ms-track { @include track }
@@ -1260,9 +853,9 @@ body {
     float: left;
     transform-origin: left;
     transform: rotateZ(-30deg); 
-    &::-webkit-slider-thumb { @include thumb("./assets/redcursor.svg") }
-    &::-moz-range-thumb { @include thumb("./assets/redcursor.svg") }
-    &::-ms-thumb { @include thumb("./assets/redcursor.svg") }
+    &::-webkit-slider-thumb { @include thumb("./assets/svg/redcursor.svg") }
+    &::-moz-range-thumb { @include thumb("./assets/svg/redcursor.svg") }
+    &::-ms-thumb { @include thumb("./assets/svg/redcursor.svg") }
   }
 }
 
@@ -1274,9 +867,9 @@ body {
     float: right;
     transform-origin: right;
     transform: rotateZ(30deg);
-    &::-webkit-slider-thumb { @include thumb("./assets/greencursor.svg") }
-    &::-moz-range-thumb { @include thumb("./assets/greencursor.svg") }
-    &::-ms-thumb { @include thumb("./assets/greencursor.svg") }
+    &::-webkit-slider-thumb { @include thumb("./assets/svg/greencursor.svg") }
+    &::-moz-range-thumb { @include thumb("./assets/svg/greencursor.svg") }
+    &::-ms-thumb { @include thumb("./assets/svg/greencursor.svg") }
   }
 }
 
