@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "module": "^1.2.5",
-    "npm": "^6.8.0",
+    "npm": "^9.6.5",
     "promise-worker": "^2.0.1",
     "vue": "^2.6.6"
   },
